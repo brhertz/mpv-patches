@@ -1,0 +1,66 @@
+diff --git a/player/command.c b/player/command.c
+index 8a195e2b17..6a921100d8 100644
+--- a/player/command.c
++++ b/player/command.c
+@@ -340,6 +340,15 @@ static char *append_selected_style(struct MPContext *mpctx, char *str)
+                OSD_ASS_1);
+ }
+ 
++static char *ass_invis_style(struct MPContext *mpctx, char *str)
++{
++  // leave str as-is if we don't have a context, or don't seem to be writing to
++  // osd
++  if (!mpctx || !mpctx->video_out || !mpctx->opts->video_osd) return str;
++  // else use libass to 'hide' the string
++  return talloc_asprintf(NULL, OSD_ASS_0"{\\alpha&HFF}%s{\\r}"OSD_ASS_1, str);
++}
++
+ static const char *get_style_reset(struct MPContext *mpctx)
+ {
+     return mpctx->video_out && mpctx->opts->video_osd
+@@ -1104,7 +1113,9 @@ static int mp_property_list_chapters(void *ctx, struct m_property *prop,
+             char* time = mp_format_time(t, false);
+             res = talloc_asprintf_append(res, "%s", time);
+             talloc_free(time);
+-            const char *m = n == cur ? list_current : list_normal;
++            const char *m = n == cur ?
++              list_current :
++              ass_invis_style(mpctx, (char*) list_normal);
+             res = talloc_asprintf_append(res, "  %s%s\n", m, name);
+ 
+         }
+@@ -1222,8 +1233,9 @@ static int mp_property_list_editions(void *ctx, struct m_property *prop,
+         for (int n = 0; n < num_editions; n++) {
+             struct demux_edition *ed = &editions[n];
+ 
+-            res = talloc_strdup_append(res, n == current ? list_current
+-                                       : list_normal);
++            res = talloc_strdup_append(res, n == current ?
++                                       list_current:
++                                       ass_invis_style(mpctx, (char*) list_normal));
+             res = talloc_asprintf_append(res, "%d: ", n);
+             char *title = mp_tags_get_str(ed->metadata, "title");
+             if (!title)
+@@ -2210,7 +2222,9 @@ static const char *track_type_name(struct track *t)
+ 
+ static char *append_track_info(char *res, struct track *track)
+ {
+-    res = talloc_strdup_append(res, track->selected ? list_current : list_normal);
++    res = talloc_strdup_append(res, track->selected ?
++                               list_current :
++                               ass_invis_style(NULL, (char*) list_normal));
+     res = talloc_asprintf_append(res, "(%d) ", track->user_tid);
+     res = talloc_strdup_append(res, mp_format_track_metadata(res, track, true));
+ 
+@@ -3694,8 +3708,9 @@ static int mp_property_playlist(void *ctx, struct m_property *prop,
+ 
+         for (int n = 0; n < pl->num_entries; n++) {
+             struct playlist_entry *e = pl->entries[n];
+-            res =  talloc_strdup_append(res, pl->current == e ? list_current
+-                                        : list_normal);
++            res =  talloc_strdup_append(res, pl->current == e ?
++                                        list_current :
++                                        ass_invis_style(mpctx, (char*) list_normal));
+             const char *p = e->title;
+             if (!p || mpctx->opts->playlist_entry_name > 0) {
+                 p = e->filename;
