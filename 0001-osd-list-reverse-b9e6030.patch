@@ -1,0 +1,65 @@
+diff --git a/player/command.c b/player/command.c
+index 0dea4bfc94..8a195e2b17 100644
+--- a/player/command.c
++++ b/player/command.c
+@@ -1099,14 +1099,14 @@ static int mp_property_list_chapters(void *ctx, struct m_property *prop,
+         }
+ 
+         for (n = 0; n < count; n++) {
+-            if (n == cur)
+-                res = append_selected_style(mpctx, res);
+             char *name = chapter_name(mpctx, n);
+             double t = chapter_start_time(mpctx, n);
+             char* time = mp_format_time(t, false);
+-            res = talloc_asprintf_append(res, "%s  %s%s\n", time, name,
+-                                         n == cur ? get_style_reset(mpctx) : "");
++            res = talloc_asprintf_append(res, "%s", time);
+             talloc_free(time);
++            const char *m = n == cur ? list_current : list_normal;
++            res = talloc_asprintf_append(res, "  %s%s\n", m, name);
++
+         }
+ 
+         *(char **)arg = count ? cut_osd_list(mpctx, "Chapters", res, cur) : res;
+@@ -1222,14 +1222,13 @@ static int mp_property_list_editions(void *ctx, struct m_property *prop,
+         for (int n = 0; n < num_editions; n++) {
+             struct demux_edition *ed = &editions[n];
+ 
+-            if (n == current)
+-                res = append_selected_style(mpctx, res);
++            res = talloc_strdup_append(res, n == current ? list_current
++                                       : list_normal);
+             res = talloc_asprintf_append(res, "%d: ", n);
+             char *title = mp_tags_get_str(ed->metadata, "title");
+             if (!title)
+                 title = "unnamed";
+-            res = talloc_asprintf_append(res, "'%s'%s\n", title,
+-                                         n == current ? get_style_reset(mpctx) : "");
++            res = talloc_asprintf_append(res, "'%s'\n", title);
+         }
+ 
+         *(char **)arg = res;
+@@ -3695,9 +3694,8 @@ static int mp_property_playlist(void *ctx, struct m_property *prop,
+ 
+         for (int n = 0; n < pl->num_entries; n++) {
+             struct playlist_entry *e = pl->entries[n];
+-            if (pl->current == e)
+-                res = append_selected_style(mpctx, res);
+-            const char *reset = pl->current == e ? get_style_reset(mpctx) : "";
++            res =  talloc_strdup_append(res, pl->current == e ? list_current
++                                        : list_normal);
+             const char *p = e->title;
+             if (!p || mpctx->opts->playlist_entry_name > 0) {
+                 p = e->filename;
+@@ -3708,9 +3706,9 @@ static int mp_property_playlist(void *ctx, struct m_property *prop,
+                 }
+             }
+             if (!e->title || p == e->title || mpctx->opts->playlist_entry_name == 1) {
+-                res = talloc_asprintf_append(res, "%s%s\n", p, reset);
++              res = talloc_asprintf_append(res, "%s\n", p);
+             } else {
+-                res = talloc_asprintf_append(res, "%s (%s)%s\n", e->title, p, reset);
++              res = talloc_asprintf_append(res, "%s (%s)\n", e->title, p);
+             }
+         }
+ 
